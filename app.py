@@ -916,7 +916,7 @@
 # if __name__ == "__main__":
 #     main()import streamlit as st
 
-
+import streamli
 import requests
 import json
 import uuid
@@ -927,7 +927,18 @@ from datetime import datetime
 from dotenv import load_dotenv
 import pandas as pd
 import altair as alt
-
+# Page configuration
+st.set_page_config(
+    page_title="FinChat - AI Financial Assistant",
+    page_icon="💰",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/yourusername/finchat',
+        'Report a bug': 'https://github.com/yourusername/finchat/issues',
+        'About': "# FinChat\nYour personal AI financial assistant powered by GROQ."
+    }
+)
 # Load API keys from Streamlit secrets or .env file
 try:
     # First try to load from Streamlit secrets (for cloud deployment)
@@ -946,18 +957,7 @@ print(f"Python version: {sys.version}", flush=True)
 print(f"GROQ API KEY status: {'Available' if GROQ_API_KEY else 'Missing'}", flush=True)
 print(f"Current working directory: {os.getcwd()}", flush=True)
 
-# Page configuration
-st.set_page_config(
-    page_title="FinChat - AI Financial Assistant",
-    page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://github.com/yourusername/finchat',
-        'Report a bug': 'https://github.com/yourusername/finchat/issues',
-        'About': "# FinChat\nYour personal AI financial assistant powered by GROQ."
-    }
-)
+
 
 # Custom CSS for better styling
 st.markdown("""
