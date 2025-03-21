@@ -1,10 +1,12 @@
-[theme]
-primaryColor = "#1E88E5"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
-font = "sans serif"
-
-[server]
-enableCORS = true
-enableXsrfProtection = true
+[project]
+name = "repl-nix-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "altair>=5.5.0",
+    "pandas>=2.2.3",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.3",
+    "streamlit>=1.43.2",
+]
