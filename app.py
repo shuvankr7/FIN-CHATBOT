@@ -131,10 +131,10 @@ def call_groq_api(messages):
         return f"Error: {str(e)}"
 
 # Main UI
-st.title("Kshirsa AI")
+st.title("Kshirsa FinChat")
 
 # Chat Interface
-st.markdown("### Personal assistant")
+st.markdown("### Personal finance assistant")
 
 # Display chat messages
 for message in st.session_state.messages[1:]:
