@@ -22,37 +22,72 @@ if "messages" not in st.session_state:
 # Page config
 st.set_page_config(page_title="FinChat Pro", layout="wide")
 
-# Custom CSS
+# Custom CSS for attractive UI
 st.markdown("""
 <style>
-    .calculator-card {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 10px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
     }
-    .stButton>button {
-        width: 100%;
-        background-color: #4CAF50;
-        color: white;
+    .stApp {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+        color: #4CAF50;
+        text-align: center;
     }
     .chat-message {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 10px;
     }
     .user-message {
         background-color: #e3f2fd;
+        border-left: 5px solid #2196F3;
     }
     .assistant-message {
         background-color: #f5f5f5;
+        border-left: 5px solid #4CAF50;
     }
-    .metric-card {
-        background-color: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .reply-area {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .reply-area input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #cccccc;
+        border-radius: 5px;
+    }
+    .reply-area button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 15px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    .reply-area button:hover {
+        background-color: #45a049;
+    }
+    .suggestion-button {
+        width: 100%;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        margin: 5px 0;
+    }
+    .suggestion-button:hover {
+        background-color: #0056b3;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -86,18 +121,28 @@ st.markdown("### AI Financial Assistant")
 
 # Display chat messages
 for message in st.session_state.messages[1:]:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
+    with st.container():
+        if message["role"] == "user":
+            st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-message assistant-message">{message["content"]}</div>', unsafe_allow_html=True)
 
-# Chat input - must be outside any container elements
-if prompt := st.chat_input("Ask me anything about finance..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.spinner("Thinking..."):
-        response = call_groq_api(st.session_state.messages)
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.rerun()
+# Chat input area
+col1, col2 = st.columns([4, 1])
+with col1:
+    prompt = st.text_input("Ask me anything about finance...", key='input_prompt')
+with col2:
+    if st.button("Send"):
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.spinner("Thinking..."):
+                response = call_groq_api(st.session_state.messages)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                st.expander("Replay Area").empty()  # Clear the text input area
+                st.experimental_rerun()
 
 # Chat suggestions
+st.markdown("### Suggestions")
 suggestions = [
     "How to start investing?",
     "Explain mutual funds",
@@ -107,16 +152,14 @@ suggestions = [
     "Compare PPF and FD",
 ]
 
-# Suggestion buttons in columns
-cols = st.columns(3)
-for i, suggestion in enumerate(suggestions):
-    with cols[i % 3]:
-        if st.button(suggestion, key=f"sug_{i}"):
-            st.session_state.messages.append({"role": "user", "content": suggestion})
-            with st.spinner("Thinking..."):
-                response = call_groq_api(st.session_state.messages)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+# Suggestion buttons
+for suggestion in suggestions:
+    if st.button(suggestion, key=suggestion):
+        st.session_state.messages.append({"role": "user", "content": suggestion})
+        with st.spinner("Thinking..."):
+            response = call_groq_api(st.session_state.messages)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.experimental_rerun()
 
 # Footer
 st.markdown("---")
