@@ -150,6 +150,7 @@ Your expertise includes:
 - Credit, debt management, and loans
 - Retirement planning
 - Insurance
+-Provide calculations like ppf , epf, compund interest, nps, sip, loan, emi type of all financial calculation
 
 Guidelines:
 1. Provide accurate, helpful information on financial topics.
@@ -189,7 +190,7 @@ def main():
     # Display welcome message if no chat history
     if not st.session_state.chat_history:
         display_message(
-            "Hello! I'm your FinChat assistant. I can help with personal finance questions, money management, taxes, and finance news. What would you like to know about today?", 
+            "Hello! I'm your Kshirsa FinChat assistant. I can help with personal finance questions, money management, taxes, and finance news. What would you like to know about today?", 
             "assistant"
         )
     
