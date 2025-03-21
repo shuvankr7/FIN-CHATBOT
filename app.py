@@ -114,10 +114,10 @@ def call_groq_api(messages):
         return f"Error: {str(e)}"
 
 # Main UI
-st.title("💰 FinChat Pro")
+st.title("Kshirsa AI")
 
 # Chat Interface
-st.markdown("### AI Financial Assistant")
+st.markdown("### Personal assistant")
 
 # Display chat messages
 for message in st.session_state.messages[1:]:
@@ -148,6 +148,7 @@ suggestions = [
     "Explain mutual funds",
     "Best tax-saving options?",
     "Create emergency fund",
+    "what is 50-30-20- rule"
     "Retirement planning tips",
     "Compare PPF and FD",
 ]
@@ -163,4 +164,4 @@ for suggestion in suggestions:
 
 # Footer
 st.markdown("---")
-st.markdown("*Note: All calculations are approximate. Please consult a financial advisor for personalized advice.*")
+st.markdown("*Note: Trying to make your persoonal finance journey smooth*")
