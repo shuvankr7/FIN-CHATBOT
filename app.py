@@ -650,6 +650,11 @@
 
 
 
+
+  
+
+   
+
 import streamlit as st
 import requests
 import json
@@ -1235,7 +1240,7 @@ def main():
         st.title("💰 Financial Calculator Dashboard")
 
         # Create tabs for different calculators
-        tabs = st.tabs(["Fixed Deposit", "SIP Calculator", "Loan EMI", "Income Tax", "Investment Projections"])
+        tabs = st.tabs(["Fixed Deposit", "SIP Calculator", "Loan EMI", "PPF Calculator", "NPS Calculator", "Insurance Premium", "Retirement Planning", "Cost of Delay", "Investment Projections"])
 
         # Fixed Deposit Calculator
         with tabs[0]:
