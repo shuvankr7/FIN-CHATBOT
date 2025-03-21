@@ -4,35 +4,47 @@ import requests
 from dotenv import load_dotenv
 import os
 import pandas as pd
-import plotly.express as px
 import numpy as np
+import plotly.graph_objects as go
 
 # Load environment variables
 load_dotenv()
-GROQ_API_KEY = "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"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Page config
 st.set_page_config(page_title="FinChat Pro", layout="wide")
 
-# Basic styling
+# Custom CSS
 st.markdown("""
 <style>
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
     .calculator-card {
         background-color: #f8f9fa;
         padding: 20px;
         border-radius: 10px;
         margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .comparison-card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #e0e0e0;
-        margin: 10px 0;
+    .stButton>button {
+        width: 100%;
+        background-color: #4CAF50;
+        color: white;
+    }
+    .chat-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+    }
+    .assistant-message {
+        background-color: #f5f5f5;
+    }
+    .metric-card {
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -58,13 +70,33 @@ def call_groq_api(messages):
     except Exception as e:
         return f"Error: {str(e)}"
 
-def calculate_compound_interest(principal, rate, time, frequency=12):
+# Calculator Functions
+def calculate_sip(monthly_investment, rate, time):
+    monthly_rate = rate/(12*100)
+    months = time * 12
+    future_value = monthly_investment * ((1 + monthly_rate) * ((1 + monthly_rate)**months - 1)/monthly_rate)
+    return future_value
+
+def calculate_emi(principal, rate, time):
+    r = rate/1200
+    n = time * 12
+    return (principal * r * (1 + r)**n) / ((1 + r)**n - 1)
+
+def calculate_ppf(yearly_investment, rate=7.1, time=15):
+    total_amount = 0
+    for i in range(time):
+        total_amount += yearly_investment
+        total_amount *= (1 + rate/100)
+    return total_amount
+
+def calculate_fd(principal, rate, time, frequency=4):
     return principal * (1 + rate/100/frequency)**(frequency*time)
 
-def calculate_loan_emi(principal, rate, time):
-    r = rate/1200  # monthly interest rate
-    n = time * 12  # number of months
-    return (principal * r * (1 + r)**n) / ((1 + r)**n - 1)
+def calculate_rd(monthly_deposit, rate, time):
+    quarters = time * 4
+    quarterly_rate = rate/400
+    amount = monthly_deposit * 3 * (((1 + quarterly_rate)**quarters - 1)/quarterly_rate)
+    return amount
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -75,90 +107,210 @@ if "messages" not in st.session_state:
         }
     ]
 
-# Tabs for different sections
-tab1, tab2, tab3 = st.tabs(["💬 Chat", "🧮 Calculators", "📊 Investment Comparison"])
+# Main UI
+st.title("💰 FinChat Pro")
+tabs = st.tabs(["💬 Chat", "🧮 Financial Calculators"])
 
-with tab1:
-    st.title("💰 FinChat Pro")
+with tabs[0]:
+    # Chat Interface
+    st.markdown("### AI Financial Assistant")
+    
+    # Chat suggestions
+    suggestions = [
+        "How to start investing?",
+        "Explain mutual funds",
+        "Best tax-saving options?",
+        "Create emergency fund",
+        "Retirement planning tips",
+        "Compare PPF and FD",
+    ]
+    
+    cols = st.columns(3)
+    for i, suggestion in enumerate(suggestions):
+        with cols[i % 3]:
+            if st.button(suggestion, key=f"sug_{i}"):
+                st.session_state.messages.append({"role": "user", "content": suggestion})
+                with st.spinner("Thinking..."):
+                    response = call_groq_api(st.session_state.messages)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
     
     # Display chat messages
     for message in st.session_state.messages[1:]:
-        with st.container():
-            st.markdown(f"""<div class="chat-message {message['role']}">
-                {message['content']}
-            </div>""", unsafe_allow_html=True)
-
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+    
     # Chat input
-    user_input = st.text_input("Your question:")
-    if st.button("Send") and user_input:
+    user_input = st.chat_input("Ask me anything about finance...")
+    if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.spinner("Thinking..."):
             response = call_groq_api(st.session_state.messages)
             st.session_state.messages.append({"role": "assistant", "content": response})
-        st.rerun()
+            st.rerun()
 
-with tab2:
-    st.title("Financial Calculators")
+with tabs[1]:
+    st.markdown("### Financial Calculators")
     
-    col1, col2 = st.columns(2)
+    calculator = st.selectbox("Choose Calculator", [
+        "SIP Calculator",
+        "EMI Calculator",
+        "PPF Calculator",
+        "Fixed Deposit Calculator",
+        "Recurring Deposit Calculator",
+        "Education Planning Calculator"
+    ])
     
-    with col1:
-        st.markdown("<div class='calculator-card'>", unsafe_allow_html=True)
-        st.subheader("Investment Calculator")
-        principal = st.number_input("Principal Amount ($)", min_value=0, value=10000)
-        rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, value=8.0)
-        time = st.number_input("Time Period (Years)", min_value=0, value=5)
-        if st.button("Calculate Investment"):
-            future_value = calculate_compound_interest(principal, rate, time)
-            st.success(f"Future Value: ${future_value:,.2f}")
-        st.markdown("</div>", unsafe_allow_html=True)
+    if calculator == "SIP Calculator":
+        with st.container():
+            st.markdown("#### Systematic Investment Plan (SIP) Calculator")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                monthly_inv = st.number_input("Monthly Investment (₹)", min_value=500, value=5000)
+            with col2:
+                roi = st.number_input("Expected Return Rate (%)", min_value=1.0, value=12.0)
+            with col3:
+                years = st.number_input("Investment Period (Years)", min_value=1, value=10)
+            
+            if st.button("Calculate SIP Returns"):
+                future_value = calculate_sip(monthly_inv, roi, years)
+                total_investment = monthly_inv * years * 12
+                wealth_gained = future_value - total_investment
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Investment", f"₹{total_investment:,.0f}")
+                with col2:
+                    st.metric("Wealth Gained", f"₹{wealth_gained:,.0f}")
+                with col3:
+                    st.metric("Future Value", f"₹{future_value:,.0f}")
+                
+                # Visualization
+                years_list = list(range(years + 1))
+                investment_value = [monthly_inv * 12 * year for year in years_list]
+                future_values = [calculate_sip(monthly_inv, roi, year) for year in years_list]
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=years_list, y=investment_value, name="Investment"))
+                fig.add_trace(go.Scatter(x=years_list, y=future_values, name="Future Value"))
+                fig.update_layout(title="Investment Growth Over Time",
+                                xaxis_title="Years",
+                                yaxis_title="Value (₹)")
+                st.plotly_chart(fig)
     
-    with col2:
-        st.markdown("<div class='calculator-card'>", unsafe_allow_html=True)
-        st.subheader("Loan EMI Calculator")
-        loan_amount = st.number_input("Loan Amount ($)", min_value=0, value=100000)
-        interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, value=6.0, key="loan_rate")
-        loan_term = st.number_input("Loan Term (Years)", min_value=0, value=20, key="loan_term")
+    elif calculator == "EMI Calculator":
+        st.markdown("#### EMI Calculator")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            loan_amount = st.number_input("Loan Amount (₹)", min_value=10000, value=1000000)
+        with col2:
+            interest_rate = st.number_input("Interest Rate (%)", min_value=1.0, value=8.5)
+        with col3:
+            tenure = st.number_input("Loan Tenure (Years)", min_value=1, value=20)
+        
         if st.button("Calculate EMI"):
-            emi = calculate_loan_emi(loan_amount, interest_rate, loan_term)
-            st.success(f"Monthly EMI: ${emi:,.2f}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-with tab3:
-    st.title("Investment Comparison")
+            emi = calculate_emi(loan_amount, interest_rate, tenure)
+            total_payment = emi * tenure * 12
+            total_interest = total_payment - loan_amount
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Monthly EMI", f"₹{emi:,.0f}")
+            with col2:
+                st.metric("Total Interest", f"₹{total_interest:,.0f}")
+            with col3:
+                st.metric("Total Payment", f"₹{total_payment:,.0f}")
+            
+            # Pie chart for loan breakup
+            fig = go.Figure(data=[go.Pie(labels=['Principal', 'Interest'],
+                                       values=[loan_amount, total_interest])])
+            fig.update_layout(title="Loan Amount Breakup")
+            st.plotly_chart(fig)
     
-    # Sample historical returns data
-    returns_data = {
-        'Year': list(range(2014, 2024)),
-        'Stocks': [13.7, 1.4, 12.0, 21.8, -4.4, 31.5, 18.4, 28.7, -18.1, 24.2],
-        'Gold': [-1.5, -10.4, 8.5, 13.1, -2.8, 18.3, 24.6, -3.6, -0.3, 13.4],
-        'Real Estate': [11.4, 10.8, 6.9, 6.2, 4.8, 5.2, 2.9, 18.4, 14.2, 3.8],
-        'Fixed Deposit': [8.5, 7.5, 7.0, 6.5, 6.5, 6.0, 5.5, 5.0, 5.5, 6.0]
-    }
+    elif calculator == "PPF Calculator":
+        st.markdown("#### Public Provident Fund (PPF) Calculator")
+        yearly_investment = st.number_input("Yearly Investment (₹)", min_value=500, max_value=150000, value=150000)
+        
+        if st.button("Calculate PPF Returns"):
+            maturity_amount = calculate_ppf(yearly_investment)
+            total_investment = yearly_investment * 15
+            interest_earned = maturity_amount - total_investment
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Investment", f"₹{total_investment:,.0f}")
+            with col2:
+                st.metric("Interest Earned", f"₹{interest_earned:,.0f}")
+            with col3:
+                st.metric("Maturity Amount", f"₹{maturity_amount:,.0f}")
     
-    df = pd.DataFrame(returns_data)
+    elif calculator == "Fixed Deposit Calculator":
+        st.markdown("#### Fixed Deposit Calculator")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            principal = st.number_input("Principal Amount (₹)", min_value=1000, value=100000)
+        with col2:
+            rate = st.number_input("Interest Rate (%)", min_value=1.0, value=6.0)
+        with col3:
+            time = st.number_input("Time Period (Years)", min_value=1, value=5)
+        
+        if st.button("Calculate FD Returns"):
+            maturity_amount = calculate_fd(principal, rate, time)
+            interest_earned = maturity_amount - principal
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Interest Earned", f"₹{interest_earned:,.2f}")
+            with col2:
+                st.metric("Maturity Amount", f"₹{maturity_amount:,.2f}")
     
-    # Risk-Reward Plot
-    fig_risk = px.scatter(
-        df,
-        x=[df[asset].std() for asset in ['Stocks', 'Gold', 'Real Estate', 'Fixed Deposit']],
-        y=[df[asset].mean() for asset in ['Stocks', 'Gold', 'Real Estate', 'Fixed Deposit']],
-        text=['Stocks', 'Gold', 'Real Estate', 'Fixed Deposit'],
-        title="Risk vs. Return Analysis",
-        labels={'x': 'Risk (Standard Deviation)', 'y': 'Average Annual Return (%)'}
-    )
-    st.plotly_chart(fig_risk)
+    elif calculator == "Recurring Deposit Calculator":
+        st.markdown("#### Recurring Deposit Calculator")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            monthly_deposit = st.number_input("Monthly Deposit (₹)", min_value=500, value=5000)
+        with col2:
+            rate = st.number_input("Interest Rate (%)", min_value=1.0, value=5.5)
+        with col3:
+            time = st.number_input("Time Period (Years)", min_value=1, value=3)
+        
+        if st.button("Calculate RD Returns"):
+            maturity_amount = calculate_rd(monthly_deposit, rate, time)
+            total_deposit = monthly_deposit * time * 12
+            interest_earned = maturity_amount - total_deposit
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Deposit", f"₹{total_deposit:,.2f}")
+            with col2:
+                st.metric("Interest Earned", f"₹{interest_earned:,.2f}")
+            with col3:
+                st.metric("Maturity Amount", f"₹{maturity_amount:,.2f}")
     
-    # Historical Returns Comparison
-    fig_returns = px.line(
-        df, 
-        x='Year',
-        y=['Stocks', 'Gold', 'Real Estate', 'Fixed Deposit'],
-        title="Historical Returns Comparison",
-        labels={'value': 'Annual Return (%)', 'variable': 'Asset Class'}
-    )
-    st.plotly_chart(fig_returns)
+    elif calculator == "Education Planning Calculator":
+        st.markdown("#### Education Planning Calculator")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            current_cost = st.number_input("Current Education Cost (₹)", min_value=100000, value=1000000)
+            years_to_goal = st.number_input("Years until Education", min_value=1, value=10)
+        with col2:
+            inflation_rate = st.number_input("Education Inflation Rate (%)", min_value=1.0, value=10.0)
+            expected_return = st.number_input("Expected Return Rate (%)", min_value=1.0, value=12.0)
+        
+        if st.button("Calculate Education Plan"):
+            future_cost = current_cost * (1 + inflation_rate/100)**years_to_goal
+            monthly_investment = (future_cost * (expected_return/1200)) / (((1 + expected_return/1200)**(years_to_goal*12)) - 1)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Future Education Cost", f"₹{future_cost:,.0f}")
+            with col2:
+                st.metric("Required Monthly Investment", f"₹{monthly_investment:,.0f}")
 
 # Footer
 st.markdown("---")
-st.markdown("*Note: This is for educational purposes only. Consult a professional for financial advice.*")
+st.markdown("*Note: All calculations are approximate. Please consult a financial advisor for personalized advice.*")
