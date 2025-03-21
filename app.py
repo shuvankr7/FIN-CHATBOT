@@ -5,7 +5,7 @@ import os
 
 # Load environment variables
 load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = "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"
 
 # Page config
 st.set_page_config(page_title="Simple FinChat", layout="centered")
