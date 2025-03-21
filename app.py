@@ -916,7 +916,7 @@
 # if __name__ == "__main__":
 #     main()import streamlit as st
 
-import streamli
+import streamlit
 import requests
 import json
 import uuid
