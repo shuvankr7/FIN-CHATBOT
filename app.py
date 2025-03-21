@@ -21,7 +21,7 @@ print(f"Current working directory: {os.getcwd()}", flush=True)
 
 # Page configuration
 st.set_page_config(
-    page_title="FinChat - AI Financial Assistant",
+    page_title="Kshirsa powered AI FinChat",
     page_icon="💰",
     layout="centered",
     initial_sidebar_state="collapsed"
